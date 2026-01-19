@@ -120,25 +120,30 @@ sudo sed -i '
 n
 /}/b
 s/color: .*/color: "#000000"/
-s/opacity: .*/opacity: 0.8/
+s/opacity: .*/opacity: 0.5/
 b loop
 }
 ' "$SDDM_MAIN"
 
 # ===============================
-# Hyprpaper
+# Hyprpaper (todos os monitores)
 # ===============================
-MONITOR="$(hyprctl monitors -j | jq -r '.[0].name')"
+MONITORS=$(hyprctl monitors -j | jq -r '.[].name')
 
 cat > "$HYPRPAPER_CONF" <<EOF
 splash = false
+EOF
+
+for MON in $MONITORS; do
+cat >> "$HYPRPAPER_CONF" <<EOF
 
 wallpaper {
-    monitor = $MONITOR
+    monitor = $MON
     path = $IMAGE
     fit_mode = cover
 }
 EOF
+done
 
 pkill hyprpaper || true
 hyprpaper &
