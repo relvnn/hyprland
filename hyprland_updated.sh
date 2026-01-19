@@ -25,7 +25,7 @@ for pkg in "${REQUIRED_PKGS[@]}"; do
 done
 
 # ===============================
-# Paths dinâmicos
+# Paths
 # ===============================
 HOME_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}"
 HOME_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}"
@@ -61,7 +61,7 @@ while read -r name hex; do
 done
 
 # ===============================
-# QML Colors (para SDDM)
+# QML Colors (SDDM)
 # ===============================
 cat > "$WAL_QML" <<EOF
 import QtQuick 2.15
@@ -83,16 +83,12 @@ chmod 644 "$WAL_QML"
 # ===============================
 if [ -n "$WAYBAR_CSS" ]; then
     COLOR1_HEX=$(jq -r '.colors.color1' "$WAL_JSON")
-
     R=$((16#${COLOR1_HEX:1:2}))
     G=$((16#${COLOR1_HEX:3:2}))
     B=$((16#${COLOR1_HEX:5:2}))
-
-    RGBA="rgba($R, $G, $B, 0.2)"
-
     sed -i -E \
-      "s|background-color:.*;|background-color: ${RGBA};|" \
-      "$WAYBAR_CSS"
+        "s|background-color:.*;|background-color: rgba($R,$G,$B,0.2);|" \
+        "$WAYBAR_CSS"
 fi
 
 # ===============================
@@ -104,19 +100,30 @@ sudo chown root:root "$SDDM_BG" "$SDDM_QML"
 sudo chmod 644 "$SDDM_BG" "$SDDM_QML"
 
 # ===============================
-# Atualizar Main.qml com cores Pywal
+# Cores claras garantidas (SDDM)
 # ===============================
-COLOR_TEXT=$(jq -r '.colors.color7' "$WAL_JSON")
-COLOR_HIGHLIGHT=$(jq -r '.colors.color1' "$WAL_JSON") # highlight mais fraco
-COLOR_WINDOW=$(jq -r '.colors.color0' "$WAL_JSON")    # para o rectangle
+COLOR_TEXT=$(jq -r '.special.foreground' "$WAL_JSON")
+COLOR_HIGHLIGHT=$(jq -r '.colors.color7' "$WAL_JSON")
 
 sudo sed -i \
-    -e "s/palette.highlight:.*/palette.highlight: \"$COLOR_HIGHLIGHT\"/" \
-    -e "s/palette.text:.*/palette.text: \"$COLOR_TEXT\"/" \
-    -e "s/palette.buttonText:.*/palette.buttonText: \"$COLOR_TEXT\"/" \
-    -e "s/palette.window:.*/palette.window: \"$COLOR_WINDOW\"/" \
-    -e "s|color: \".*\"|color: \"$COLOR_WINDOW\"|; s|opacity: .*|opacity: 0.1|" \
+    -e "s|palette.text:.*|palette.text: \"$COLOR_TEXT\"|" \
+    -e "s|palette.buttonText:.*|palette.buttonText: \"$COLOR_TEXT\"|" \
+    -e "s|palette.highlight:.*|palette.highlight: \"$COLOR_HIGHLIGHT\"|" \
     "$SDDM_MAIN"
+
+# ===============================
+# Retângulo preto com opacidade 0.8
+# ===============================
+sudo sed -i '
+/Rectangle {/{
+:loop
+n
+/}/b
+s/color: .*/color: "#000000"/
+s/opacity: .*/opacity: 0.8/
+b loop
+}
+' "$SDDM_MAIN"
 
 # ===============================
 # Hyprpaper
